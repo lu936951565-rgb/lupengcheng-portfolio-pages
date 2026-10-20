@@ -1,7 +1,12 @@
 /* Final layout layer: one set of viewport rules shared by all chapters. */
 html{overflow-x:clip}body{min-width:0;overflow-x:clip}
 .hero-story{height:420svh}
-.about-section{margin-top:-100svh;z-index:2}
+.about-section{margin-top:-100svh;z-index:2;background:transparent}
+.about-pin{background:linear-gradient(180deg,rgba(9,11,16,0) 0%,rgba(9,11,16,.66) 27svh,#090b10 52svh)}
+.story-visual>#hero-motion-frame{display:none;z-index:3;opacity:0;pointer-events:none}
+.story-title>span,.story-title>em{animation:opening-title .75s cubic-bezier(.16,1,.3,1) both}
+.story-title>em{animation-delay:.1s}
+@keyframes opening-title{from{clip-path:inset(0 0 100% 0);filter:blur(14px)}to{clip-path:inset(0 0 0 0);filter:blur(0)}}
 .story-title{font-size:clamp(42px,min(11vw,18svh),210px)}
 .story-visual{max-width:100%;max-height:100svh}
 .about-portrait{width:min(48vw,780px);height:min(78svh,920px);top:11svh}
@@ -49,6 +54,7 @@ html{overflow-x:clip}body{min-width:0;overflow-x:clip}
  .story-title{font-size:clamp(37px,10.8vw,85px)}
  .story-visual{top:42%;width:100%;height:auto;max-height:none;aspect-ratio:16/9;overflow:visible;contain:none}
  .story-visual>img,.story-visual>video,.story-visual>canvas{height:auto;aspect-ratio:16/9;object-fit:contain}
+ .story-visual>#hero-motion-frame{display:block;width:100%;height:100%;object-fit:contain}
  .story-visual .story-caption{top:calc(100% + 16px);bottom:auto;left:6%;right:7%;max-width:86%;width:auto;text-shadow:none}
  .story-visual .story-caption-right{left:6%;right:6%}
  .story-visual .story-caption h2{font-size:clamp(19px,5.1vw,30px);line-height:1.25;margin:5px 0}
@@ -58,7 +64,7 @@ html{overflow-x:clip}body{min-width:0;overflow-x:clip}
  .story-visual .story-projects h2{font-size:clamp(17px,4.3vw,24px)}
  .story-projects>div+div{margin-top:11px}
  .story-outro{top:84%;font-size:clamp(15px,4vw,22px)}
- .about-section{height:auto;min-height:0;margin-top:-100svh;padding:0;overflow:visible;background:#090b10}
+ .about-section{height:auto;min-height:0;margin-top:-65svh;padding:0;overflow:visible;background:transparent}
  .about-pin{position:relative;top:auto;height:auto;min-height:0;overflow:visible;padding:clamp(40px,8svh,90px) 7% 70px;display:flex;flex-direction:column}
  .about-content{position:static;display:contents;transform:none!important;text-shadow:none}
  .about-content>.eyebrow{order:0;margin:0 0 18px}
@@ -75,15 +81,15 @@ html{overflow-x:clip}body{min-width:0;overflow-x:clip}
  .works-heading h2{font-size:clamp(39px,11vw,72px)}
  .poster-thumbs{grid-template-columns:repeat(var(--count),minmax(190px,65vw));overflow-x:auto;scroll-snap-type:x mandatory;max-width:100%;padding-bottom:15px}
  .poster-thumbs button{scroll-snap-align:start}
- .orbit-scroll{height:170svh}
- .orbit-pin{height:100svh;overflow:hidden;perspective:none}
- .orbit-phrase{left:7%;right:10%;top:12%;font-size:clamp(22px,5.4vw,36px);line-height:1.35;text-align:left;z-index:2}
- .orbit-plane{position:absolute;left:0;top:46%;width:100%;height:auto;display:flex;gap:16px;overflow-x:auto;overflow-y:hidden;padding:0 7% 70px;scroll-snap-type:x mandatory;scrollbar-width:thin;transform:none;transform-style:flat;overscroll-behavior-inline:contain}
- .orbit-card{position:relative;inset:auto;flex:0 0 clamp(180px,58vw,270px);width:clamp(180px,58vw,270px);height:auto;aspect-ratio:4/3;margin:0;opacity:1!important;transform:none!important;scroll-snap-align:center}
+ .orbit-scroll{height:270svh}
+ .orbit-pin{height:100svh;overflow:hidden;perspective:850px}
+ .orbit-phrase{left:9%;right:9%;top:40%;font-size:clamp(22px,5.4vw,36px);line-height:1.35;text-align:center;z-index:3}
+ .orbit-plane{position:absolute;left:50%;top:47%;width:0;height:0;display:block;overflow:visible;padding:0;transform-style:preserve-3d}
+ .orbit-card{position:absolute;left:0;top:0;width:clamp(96px,28vw,160px);height:clamp(72px,21vw,120px);margin-left:calc(clamp(96px,28vw,160px)*-.5);margin-top:calc(clamp(72px,21vw,120px)*-.5);opacity:0;transform-style:preserve-3d}
  .orbit-card-art,.orbit-card .curved-surface{display:block;width:100%!important;height:100%!important}
  .orbit-card .curve-fallback{display:block;width:100%;height:100%;object-fit:contain}
  .orbit-card .curve-strip{display:none}
- .orbit-card-label{top:calc(100% + 9px);font-size:11px;max-width:100%;white-space:normal}
+ .orbit-card-label{top:calc(100% + 7px);font-size:9px;max-width:100%;white-space:normal}
  .flow-ribbon{display:none}
  #project-dialog{width:100vw;max-width:100vw;height:100dvh;max-height:100dvh;margin:0;border-radius:0}
  .dialog-top{height:82px;padding:14px 6%;gap:12px}
@@ -102,7 +108,7 @@ html{overflow-x:clip}body{min-width:0;overflow-x:clip}
  .story-visual{top:40%}
  .story-visual .story-caption{top:calc(100% + 12px)}
  .story-visual .story-projects p{font-size:10px}
- .orbit-plane{top:48%}
+ .orbit-plane{top:47%}
  .works-heading p{font-size:10px}
 }
 @media (max-width:800px) and (orientation:landscape){
@@ -111,15 +117,22 @@ html{overflow-x:clip}body{min-width:0;overflow-x:clip}
  .story-visual .story-caption{left:0;top:calc(100% + 7px)}
  .story-visual .story-caption h2{font-size:17px}
  .about-pin{padding-top:40px}
- .orbit-scroll{height:155svh}
- .orbit-phrase{top:8%;font-size:22px}
- .orbit-plane{top:46%}
+ .orbit-scroll{height:240svh}
+ .orbit-phrase{top:38%;font-size:22px}
+ .orbit-plane{top:47%}
+}
+@media (min-width:801px) and (max-width:1024px), (pointer:coarse){
+ .story-visual>#hero-motion-frame{display:block;width:100%;height:100%;object-fit:contain}
 }
 @media (prefers-reduced-motion:reduce){
+ .story-title>span,.story-title>em{animation:none}
  .hero-story{height:100svh;min-height:0}
  .about-section{margin-top:0}
+ .about-pin{background:#090b10}
  .orbit-scroll{height:auto}
  .orbit-pin{position:relative;height:auto;min-height:0}
- .orbit-phrase{opacity:1!important;position:relative;inset:auto;transform:none}
+ .orbit-phrase{display:block;opacity:1!important;position:relative;inset:auto;transform:none;margin-bottom:45px}
  .orbit-word{opacity:1!important;filter:none!important}
+ .orbit-plane{position:static;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:34px 18px;width:100%;height:auto}
+ .orbit-card{position:relative;width:100%;height:auto;aspect-ratio:4/3;margin:0;opacity:1!important;transform:none!important}
 }

@@ -3,13 +3,17 @@
   const $=s=>document.querySelector(s),clamp=n=>Math.max(0,Math.min(1,n));
   const section=$('#home'),about=$('#about'),visual=$('.story-visual'),image=$('#hero-image');
   const reduce=matchMedia('(prefers-reduced-motion: reduce)');
+  const coarse=matchMedia('(pointer: coarse)');
   const movies=[$('#transition-1'),$('#transition-2')];
+  const motionCanvas=$('#hero-motion-frame'),motionContext=motionCanvas.getContext('2d',{alpha:false});
+  const motionSheets=[1,2].map(n=>{const image=new Image();image.decoding='async';image.src=`assets/hero-motion-${n}.webp`;image.addEventListener('load',wake);return image});
   const stills=['assets/hero-0.webp','assets/hero-1.webp','assets/hero-2.webp'];
   const copies=[...document.querySelectorAll('[data-story-copy]')];
   const rails=[...document.querySelectorAll('.page-progress a')];
   const reveals=[...document.querySelectorAll('.about-line')];
   let frame=0,p=0,last=0,first=true,motion=!reduce.matches,water,waterScene=-1,waterOn=null;
   let stillStage=0,lastVideo=-1;
+  let drawnFrame=-1,drawnSheet=-1;
   stills.forEach(src=>{const im=new Image();im.src=src});
   try{water=window.createWater($('#water'),stills[0])}catch(e){$('#water').hidden=true}
   movies.forEach(video=>{
@@ -25,8 +29,18 @@
     if(!video.seeking&&Math.abs(video.currentTime-target)>.045){video.currentTime=target;video.dataset.settled='false'}
     return video.readyState>=2;
   }
+  function paintMobileFrame(index,fraction){
+    const sheet=motionSheets[index],frameNumber=Math.min(29,Math.max(0,Math.round(fraction*29)));
+    if(!sheet.complete||!sheet.naturalWidth)return false;
+    if(index!==drawnSheet||frameNumber!==drawnFrame){
+      motionContext.drawImage(sheet,(frameNumber%5)*640,Math.floor(frameNumber/5)*360,640,360,0,0,640,360);
+      drawnSheet=index;drawnFrame=frameNumber;
+    }
+    motionCanvas.style.opacity='1';
+    return true;
+  }
   function setWater(on,n){
-    on=on&&motion&&!reduce.matches&&innerWidth>800&&!$('#project-dialog').open;
+    on=on&&motion&&!reduce.matches&&innerWidth>1024&&!coarse.matches&&!$('#project-dialog').open;
     if(waterScene!==n){waterScene=n;water?.setScene(stills[n],n)}
     if(waterOn!==on){waterOn=on;water?.enable(on)}
   }
@@ -35,14 +49,15 @@
     const rise=clamp(value/.14);
     const open=1-Math.pow(1-clamp((value-.18)/.34),1.5);
     // Hold the last image until the next chapter is entering the viewport.
-    const exit=clamp((value-.95)/.05);
+    const exit=clamp((value-(innerWidth<=800?.86:.79))/(innerWidth<=800?.14:.16));
+    const softExit=exit*exit*(3-2*exit);
     section.style.setProperty('--title-rise',`${(1-rise)*25}vh`);
     section.style.setProperty('--title-gap',`${Math.max(innerWidth*.018,(visual.clientWidth*(.035+.965*open)*.5+innerWidth*.015)*clamp((value-.14)/.04))}px`);
     section.style.setProperty('--title-opacity',1-clamp((value-.32)/.20));
-    section.style.setProperty('--visual-opacity',clamp((value-.18)/.07)*(1-exit));
+    section.style.setProperty('--visual-opacity',clamp((value-.18)/.07)*(1-softExit));
     section.style.setProperty('--visual-scale',.035+.965*open);
     section.style.setProperty('--visual-radius',`${(1-open)*24}%`);
-    section.style.setProperty('--outro-opacity',clamp((value-.84)/.04)*(1-exit));
+    section.style.setProperty('--outro-opacity',clamp((value-.78)/.06)*(1-softExit));
     section.style.setProperty('--opening-opacity',1-clamp(value/.12));
     section.style.setProperty('--fog-opacity',1-clamp((value-.28)/.32));
     section.style.setProperty('--exit-rise',`${exit*18}vh`);
@@ -55,8 +70,13 @@
     const clip=stage-1,local=stage===1?clamp((value-.18)/.31):clamp((value-.52)/.22);
     section.dataset.scene=String(stage);
     if(stillStage!==stage){stillStage=stage;image.src=stills[Math.max(0,stage-1)]}
-    if(stage===0||reduce.matches){movies.forEach(v=>v.style.opacity='0');lastVideo=-1;}
+    if(stage===0||reduce.matches){movies.forEach(v=>v.style.opacity='0');motionCanvas.style.opacity='0';lastVideo=-1;}
+    else if(innerWidth<=1024||coarse.matches){
+      movies.forEach(v=>v.style.opacity='0');lastVideo=-1;
+      if(!paintMobileFrame(clip,local))motionCanvas.style.opacity='0';
+    }
     else{
+      motionCanvas.style.opacity='0';
       const video=movies[clip],ready=seek(video,local);
       if(ready&&(!video.seeking||lastVideo===clip)){
         movies.forEach((v,i)=>v.style.opacity=i===clip?'1':'0');lastVideo=clip;
@@ -83,8 +103,8 @@
     const progress=clamp((innerHeight*.12-rect.top)/Math.max(1,rect.height-innerHeight*.88));
     about.dataset.progress=progress.toFixed(3);
     // Reveal the new chapter as it enters, so the hero never hands off to an empty frame.
-    const entry=clamp((innerHeight*.65-rect.top)/(innerHeight*.65));
-    const photoIn=clamp((innerHeight*.60-rect.top)/(innerHeight*.45));
+    const entry=clamp((innerHeight*1.08-rect.top)/(innerHeight*.80));
+    const photoIn=clamp((innerHeight*1.04-rect.top)/(innerHeight*.76));
     const photoOut=clamp((progress-.72)/.24);
     photo.style.setProperty('--portrait-opacity',photoIn*(1-photoOut));
     photo.style.setProperty('--portrait-blur',`${(1-photoIn)*18+photoOut*12}px`);
@@ -106,13 +126,14 @@
     frame=0;const rect=section.getBoundingClientRect(),target=clamp(-rect.top/Math.max(1,section.offsetHeight-innerHeight));
     const dt=Math.min(64,now-(last||now-16));last=now;
     p=first||reduce.matches?target:p+(target-p)*(1-Math.exp(-dt/75));first=false;
-    if(!reduce.matches){poseHero(p);poseAbout()}else{setWater(false,0);movies.forEach(v=>v.style.opacity='0');image.src=stills[0]}
+    if(!reduce.matches){poseHero(p);poseAbout()}else{setWater(false,0);movies.forEach(v=>v.style.opacity='0');motionCanvas.style.opacity='0';image.src=stills[0]}
     updateRail();
     if(Math.abs(p-target)>.0001)wake();
   }
   function wake(){if(!frame)frame=requestAnimationFrame(render)}
   window.addEventListener('scroll',wake,{passive:true});window.addEventListener('resize',()=>{first=true;wake()});
   reduce.addEventListener('change',()=>{first=true;wake()});
+  coarse.addEventListener('change',()=>{first=true;wake()});
   new ResizeObserver(wake).observe(document.querySelector('main'));
   window.addEventListener('pageshow',wake);wake();
 })();

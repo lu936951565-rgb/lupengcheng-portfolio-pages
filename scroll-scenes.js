@@ -49,14 +49,7 @@
   function progress(section){const r=section.getBoundingClientRect();return clamp(-r.top/Math.max(1,section.offsetHeight-innerHeight))}
   function poseGallery(p){
     const mobile=innerWidth<=800,w=gallery.clientWidth;
-    if(mobile){
-      cards.forEach(({button})=>{button.style.transform='none';button.style.opacity='1';button.style.zIndex='auto';button.inert=false});
-      words.forEach((word,i)=>{const reveal=clamp((p-.08-i*.028)/.10);word.style.opacity=String(reveal);word.style.filter=`blur(${(1-reveal)*6}px)`});
-      gallery.style.setProperty('--orbit-text-opacity',1);
-      gallery.style.setProperty('--orbit-text-y','0px');
-      return;
-    }
-    const rx=w*(mobile?.27:.33),rz=mobile?145:420,tilt=mobile?110:145;
+    const rx=w*(mobile?.28:.33),rz=mobile?125:420,tilt=mobile?80:145;
     const stagger=.085,span=1+stagger*(cards.length-1);
     cards.forEach(({button,surface},i)=>{
       const t=p*span-i*stagger;
@@ -65,20 +58,29 @@
       if(t<.13){const e=t/.13;x=-w*.8*(1-e);y=tilt;z=rz*e;rotation=0}
       else if(t<=.87){const phase=(t-.13)/.74,angle=Math.PI/2-phase*Math.PI*2;x=Math.cos(angle)*rx;z=Math.sin(angle)*rz;y=z/rz*tilt;rotation=phase*360}
       else{const e=(t-.87)/.13;x=w*.8*e;y=tilt;z=rz*(1-e);rotation=360}
-      const opacity=Math.min(clamp(t/.055),clamp((1-t)/.055));
+      // As the sentence arrives, shift the same travelling cards around it.
+      // On narrow screens, use the space above and below the sentence.
+      const protect=clamp((p-.16)/.16)*(1-clamp((p-.84)/.12));
+      const side=i%2===0?-1:1;
+      if(mobile){
+        x=lerp(x,side*w*.26,protect);
+        y=lerp(y,(i%4<2?-1:1)*innerHeight*.28,protect);
+        z=lerp(z,-45,protect);
+      }else{
+        const safeX=Math.max(phrase.clientWidth*.55+button.clientWidth*.72,w*.28);
+        x=lerp(x,side*(safeX+Math.abs(x)*.12),protect);
+      }
+      const mobileWindow=clamp((t-.30)/.06)*(1-clamp((t-.67)/.06));
+      const opacity=Math.min(clamp(t/.055),clamp((1-t)/.055))*(mobile?lerp(1,mobileWindow,protect):1);
       button.style.transform=`translate3d(${x}px,${y}px,${z}px) rotateY(${rotation}deg)`;
       button.style.opacity=opacity;button.style.zIndex=String(Math.round(z+500));button.inert=opacity<.15;
-      surface.bend(mobile?.45:.5);
-      // Cards travel behind a protected title area instead of obscuring its words.
-      const cardRect=button.getBoundingClientRect(),textRect=phrase.getBoundingClientRect();
-      const overlaps=cardRect.right>textRect.left-20&&cardRect.left<textRect.right+20&&cardRect.bottom>textRect.top-20&&cardRect.top<textRect.bottom+20;
-      if(overlaps){button.style.opacity='0';button.inert=true}
+      surface.bend(mobile?.0:.5);
     });
     gallery.style.setProperty('--orbit-progress',p);
     const exit=clamp((p-.69)/.17);
     words.forEach((word,i)=>{const reveal=clamp((p-.20-i*.018)/.065);word.style.opacity=String(reveal);word.style.filter=`blur(${(1-reveal)*9}px)`});
     gallery.style.setProperty('--orbit-text-opacity',1-exit);
-    gallery.style.setProperty('--orbit-text-y',`${-exit*150}px`);
+    gallery.style.setProperty('--orbit-text-y',`${-exit*Math.min(150,innerHeight*.2)}px`);
 
   }
   function poseRibbon(){
