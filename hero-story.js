@@ -46,25 +46,28 @@
   }
   window.syncHeroMotion=()=>{waterOn=null;wake()};
   function poseHero(value){
-    const rise=clamp(value/.14);
+    const rise=clamp(value/.18);
     const open=1-Math.pow(1-clamp((value-.18)/.34),1.5);
-    // Hold the last image until the next chapter is entering the viewport.
-    const exit=clamp((value-(innerWidth<=800?.86:.79))/(innerWidth<=800?.14:.16));
+    // The pin leaves naturally during the last viewport of this section.
+    const exit=clamp((value-(innerWidth<=800?.83:.79))/(innerWidth<=800?.14:.15));
     const softExit=exit*exit*(3-2*exit);
-    const titleExit=clamp((value-.03)/.19);
-    const copyExit=clamp((value-.69)/.12);
+    const titleExit=clamp((value-.18)/.14);
+    const copyExit=clamp((value-.72)/.12);
     const copyEase=copyExit*copyExit*(3-2*copyExit);
-    const outroExit=clamp((value-.79)/.06);
-    section.style.setProperty('--title-rise',`${-rise*16}vh`);
+    const outroExit=clamp((value-.92)/.05);
+    section.style.setProperty('--title-rise',`${(1-rise)*23-titleExit*12}vh`);
     section.style.setProperty('--title-gap',`${Math.max(innerWidth*.018,(visual.clientWidth*(.035+.965*open)*.5+innerWidth*.015)*clamp((value-.14)/.04))}px`);
     section.style.setProperty('--title-opacity',1-titleExit);
     section.style.setProperty('--visual-opacity',clamp((value-.18)/.07)*(1-softExit));
     section.style.setProperty('--visual-scale',.035+.965*open);
     section.style.setProperty('--visual-radius',`${(1-open)*24}%`);
-    section.style.setProperty('--outro-opacity',clamp((value-.72)/.06)*(1-outroExit));
+    section.style.setProperty('--outro-opacity',clamp((value-.84)/.05)*(1-outroExit));
     section.style.setProperty('--opening-opacity',1-clamp(value/.12));
     section.style.setProperty('--fog-opacity',1-clamp((value-.28)/.32));
     section.style.setProperty('--exit-rise',`${-copyEase*14}vh`);
+    section.style.setProperty('--outro-rise',`${-clamp((value-.85)/.12)*14}vh`);
+    const pinDeparture=Math.max(0,value*section.offsetHeight-(section.offsetHeight-innerHeight));
+    section.style.setProperty('--outro-counter',`${pinDeparture*(1-clamp((value-.88)/.09))}px`);
     const copyStage=value<.55?0:value<.68?1:2;
     section.style.setProperty('--copy-opacity',clamp((value-.42)/.08)*(1-copyEase));
     copies.forEach((el,i)=>el.classList.toggle('active',i===copyStage));
@@ -94,6 +97,8 @@
     const rect=about.getBoundingClientRect(),photo=$('.about-portrait');
     if(innerWidth<=800){
       about.dataset.progress='1';
+      about.style.setProperty('--about-copy-opacity',clamp((p-.97)/.03));
+      about.style.setProperty('--about-photo-opacity',clamp((p-.86)/.11));
       photo.style.setProperty('--portrait-opacity',1);
       photo.style.setProperty('--portrait-blur','0px');
       about.style.setProperty('--about-rise','0px');
@@ -107,13 +112,14 @@
     const progress=clamp((innerHeight*.12-rect.top)/Math.max(1,rect.height-innerHeight*.88));
     about.dataset.progress=progress.toFixed(3);
     // The biography begins only after the hero's captions and outro have left.
-    const handoff=clamp((p-.86)/.10);
+    const handoff=clamp((p-.97)/.03);
+    const photoHandoff=clamp((p-.86)/.11);
     const entry=clamp((innerHeight*1.08-rect.top)/(innerHeight*.80))*handoff;
-    const photoIn=clamp((innerHeight*1.04-rect.top)/(innerHeight*.76))*handoff;
+    const photoIn=clamp((innerHeight*1.04-rect.top)/(innerHeight*.76))*photoHandoff;
     const photoOut=clamp((progress-.72)/.24);
     photo.style.setProperty('--portrait-opacity',photoIn*(1-photoOut));
     photo.style.setProperty('--portrait-blur',`${(1-photoIn)*18+photoOut*12}px`);
-    about.style.setProperty('--about-rise',`${6-28*progress}svh`);
+    about.style.setProperty('--about-rise',`${-8*progress}svh`);
     reveals.forEach((el,i)=>{
       const enter=clamp((Math.max(progress,entry*.34)-i*.046)/.09);
       const exit=clamp((progress-(.58+i*.023))/.13);
@@ -128,7 +134,7 @@
     rails.forEach((a,i)=>{const r=positions[i],progress=clamp((innerHeight*.42-r.top)/Math.max(1,r.height));a.style.setProperty('--section-progress',i<active?1:i>active?0:progress);if(i===active)a.setAttribute('aria-current','location');else a.removeAttribute('aria-current')});
   }
   function render(now){
-    frame=0;const rect=section.getBoundingClientRect(),target=clamp(-rect.top/Math.max(1,section.offsetHeight-innerHeight));
+    frame=0;const rect=section.getBoundingClientRect(),target=clamp(-rect.top/Math.max(1,section.offsetHeight));
     const dt=Math.min(64,now-(last||now-16));last=now;
     p=first||reduce.matches?target:p+(target-p)*(1-Math.exp(-dt/75));first=false;
     if(!reduce.matches){poseHero(p);poseAbout()}else{setWater(false,0);movies.forEach(v=>v.style.opacity='0');motionCanvas.style.opacity='0';image.src=stills[0]}

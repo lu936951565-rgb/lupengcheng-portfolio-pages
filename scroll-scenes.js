@@ -7,7 +7,6 @@
   let raf=0, lastTime=0, galleryP=0, first=true;
   const projects = window.PROJECTS;
   const featured = ['off','midtone','jaunatis','shop','coat','portrait','food','coffee0329','unform'].map(id=>projects.find(p=>p.id===id)).filter(Boolean);
-  const surfaces=[];
   const phrase=document.querySelector('.orbit-phrase');
   const walker=document.createTreeWalker(phrase,NodeFilter.SHOW_TEXT),textNodes=[];
   while(walker.nextNode())textNodes.push(walker.currentNode);
@@ -16,66 +15,42 @@
   let ribbonP=0;
 
 
-  // Narrow strips sit tangentially on a cylinder: artwork genuinely bends in 3D.
-  function curvedSurface(parent,project,count) {
+  // A single image stays intact while its card moves around the sentence.
+  // Repeating narrow image strips caused dark seams on hover and in perspective.
+  function projectSurface(parent,project) {
     const surface=document.createElement('span');surface.className='curved-surface';
-    const fallback=new Image();fallback.src=project.cover;fallback.alt=project.title;fallback.className='curve-fallback';surface.append(fallback);
-    const strips=[];
-    function ensureStrips(){if(innerWidth<=800||strips.length)return;
-    for(let i=0;i<count;i++){
-      const strip=document.createElement('span');strip.className='curve-strip';strip.setAttribute('aria-hidden','true');
-      const image=new Image();image.src=project.cover;image.alt='';image.draggable=false;
-      strip.append(image);surface.append(strip);strips.push(strip);
-    }}
-    parent.append(surface);
-    let width=0,height=0;
-    function resize(){ensureStrips();width=parent.clientWidth;height=parent.clientHeight;surface.style.width=width+'px';surface.style.height=height+'px';const sw=width/count;
-      strips.forEach((strip,i)=>{strip.style.width=(sw+1)+'px';strip.style.height=height+'px';const image=strip.firstElementChild;image.style.width=width+'px';image.style.height=height+'px';image.style.left=(-i*sw)+'px'});
-    }
-    function bend(angle){if(!width)return;const sw=width/count;const radius=width/Math.max(.001,angle);
-      strips.forEach((strip,i)=>{const offset=(i+.5)/count-.5,theta=offset*angle;const x=angle<.001?offset*width:Math.sin(theta)*radius;const z=angle<.001?0:(Math.cos(theta)-1)*radius;strip.style.transform=`translate3d(${x-sw/2}px,0,${z}px) rotateY(${theta*180/Math.PI}deg)`});
-    }
-    const item={resize,bend};surfaces.push(item);return item;
+    const image=new Image();image.src=project.cover;image.alt=project.title;image.className='curve-fallback';image.draggable=false;
+    surface.append(image);parent.append(surface);
   }
   const orbitPlane=document.querySelector('.orbit-plane');
   const cards=featured.map((p,i)=>{
     const button=document.createElement('button');button.className='orbit-card';button.setAttribute('aria-label',`查看${p.title}`);
     const art=document.createElement('span');art.className='orbit-card-art';button.append(art);
-    const surface=curvedSurface(art,p,12);
+    projectSurface(art,p);
     const label=document.createElement('span');label.className='orbit-card-label';label.textContent=p.title;button.append(label);
     button.onclick=()=>window.openPortfolioProject?.(p.id);
-    orbitPlane.append(button);return {button,surface};
+    orbitPlane.append(button);return button;
   });
   function progress(section){const r=section.getBoundingClientRect();return clamp(-r.top/Math.max(1,section.offsetHeight-innerHeight))}
   function poseGallery(p){
-    const mobile=innerWidth<=800,w=gallery.clientWidth;
-    const rx=w*(mobile?.28:.33),rz=mobile?125:420,tilt=mobile?80:145;
-    const stagger=.085,span=1+stagger*(cards.length-1);
-    cards.forEach(({button,surface},i)=>{
-      const t=p*span-i*stagger;
-      if(t<=0||t>=1){button.style.opacity='0';button.inert=true;return}
-      let x,y,z,rotation;
-      if(t<.13){const e=t/.13;x=-w*.8*(1-e);y=tilt;z=rz*e;rotation=0}
-      else if(t<=.87){const phase=(t-.13)/.74,angle=Math.PI/2-phase*Math.PI*2;x=Math.cos(angle)*rx;z=Math.sin(angle)*rz;y=z/rz*tilt;rotation=phase*360}
-      else{const e=(t-.87)/.13;x=w*.8*e;y=tilt;z=rz*(1-e);rotation=360}
-      // As the sentence arrives, shift the same travelling cards around it.
-      // On narrow screens, use the space above and below the sentence.
-      // Keep the orbit clear from the first word through the last faded word.
-      const protect=clamp((p-.10)/.10)*(1-clamp((p-.88)/.06));
-      const side=i%2===0?-1:1;
-      if(mobile){
-        x=lerp(x,side*w*.26,protect);
-        y=lerp(y,(i%4<2?-1:1)*innerHeight*.28,protect);
-        z=lerp(z,-45,protect);
-      }else{
-        const safeX=Math.max(phrase.clientWidth*.55+button.clientWidth*.72,w*.28);
-        x=lerp(x,side*(safeX+Math.abs(x)*.12),protect);
-      }
-      const mobileWindow=clamp((t-.30)/.06)*(1-clamp((t-.67)/.06));
-      const opacity=Math.min(clamp(t/.055),clamp((1-t)/.055))*(mobile?lerp(1,mobileWindow,protect):1);
-      button.style.transform=`translate3d(${x}px,${y}px,${z}px) rotateY(${rotation}deg)`;
-      button.style.opacity=opacity;button.style.zIndex=String(Math.round(z+500));button.inert=opacity<.15;
-      surface.bend(mobile?.0:.5);
+    const mobile=innerWidth<=800,w=gallery.clientWidth,h=innerHeight;
+    const cardWidth=cards[0]?.offsetWidth||160,cardHeight=cards[0]?.offsetHeight||110;
+    const textClearX=phrase.clientWidth*.5+cardWidth*.5+(mobile?12:24);
+    const textClearY=phrase.clientHeight*.5+cardHeight*.5+(mobile?26:42);
+    // The whole trajectory stays outside the sentence's bounding box.
+    const rx=Math.max(w*(mobile?.43:.38),textClearX*1.5);
+    const ry=Math.max(h*(mobile?.27:.35),textClearY*1.5);
+    const enter=clamp((p-.04)/.12),leave=1-clamp((p-.90)/.08);
+    cards.forEach((button,i)=>{
+      const angle=-Math.PI/2+i*Math.PI*2/cards.length+p*Math.PI*2*.92;
+      const x=Math.cos(angle)*rx,y=Math.sin(angle)*ry;
+      const front=(Math.sin(angle)+1)*.5;
+      const z=(front-.5)*(mobile?90:240);
+      const opacity=enter*leave*(.58+.42*front);
+      button.style.transform=`translate3d(${x}px,${y}px,${z}px) rotateY(${-Math.cos(angle)*16}deg)`;
+      button.style.opacity=String(opacity);
+      button.style.zIndex=String(1+Math.round(front*7));
+      button.inert=opacity<.2;
     });
     gallery.style.setProperty('--orbit-progress',p);
     const exit=clamp((p-.69)/.17);
@@ -111,9 +86,9 @@
     if(Math.abs(galleryP-targetGallery)>.0001)wake();
   }
   function wake(){if(!raf)raf=requestAnimationFrame(render)}
-  function resize(){surfaces.forEach(x=>x.resize());first=true;wake()}
+  function resize(){first=true;wake()}
   window.addEventListener('scroll',wake,{passive:true});window.addEventListener('resize',resize);
-  reduce.addEventListener('change',()=>{cards.forEach(c=>c.button.inert=false);resize()});
+  reduce.addEventListener('change',()=>{cards.forEach(card=>card.inert=false);resize()});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)wake()});
   // The category subtree is replaced during navigation; refresh its SVG immediately.
   new MutationObserver(wake).observe(document.querySelector('#project-grid'),{childList:true});
