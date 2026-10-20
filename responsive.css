@@ -1,5 +1,12 @@
 /* Final layout layer: one set of viewport rules shared by all chapters. */
 html{overflow-x:clip}body{min-width:0;overflow-x:clip}
+main{position:relative;background:#090b10}
+.flow-ribbon{z-index:3;left:0;inset:auto;pointer-events:none}
+.work-flow{z-index:4;background:transparent}
+@media (hover:hover) and (pointer:fine){
+ .about-details .about-line{transform-origin:left center;transition:scale .3s cubic-bezier(.22,1,.36,1)}
+ .about-details .about-line:hover{scale:1.035}
+}
 .hero-story{height:420svh}
 .about-section{margin-top:0;z-index:2;background:transparent}
 .about-pin{background:linear-gradient(180deg,rgba(9,11,16,0) 0%,rgba(9,11,16,.66) 27svh,#090b10 52svh)}
@@ -21,8 +28,8 @@ html{overflow-x:clip}body{min-width:0;overflow-x:clip}
 .poster-thumbs{max-width:1500px;grid-template-columns:repeat(var(--count),minmax(0,1fr))}
 .poster-thumbs .poster-art{aspect-ratio:3/4;height:auto}
 .poster-thumbs .poster-art img{object-fit:contain}
-.orbit-scroll{background:#090b10!important}
-.orbit-phrase{left:29%;right:29%;top:50%;font-size:clamp(26px,min(3vw,5svh),54px);transform:translateY(calc(-50% + var(--orbit-text-y,0px)));z-index:10}
+.orbit-scroll{background:transparent!important}
+.orbit-phrase{left:26%;right:26%;top:50%;font-size:clamp(26px,min(3vw,5svh),54px);transform:translateY(calc(-50% + var(--orbit-text-y,0px)));z-index:10}
 .orbit-plane{top:50%;z-index:1}
 .orbit-card .curved-surface,.orbit-card .curve-fallback{display:block;width:100%;height:100%}
 .orbit-card .curve-fallback{object-fit:contain}

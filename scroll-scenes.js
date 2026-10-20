@@ -35,19 +35,24 @@
   function poseGallery(p){
     const mobile=innerWidth<=800,w=gallery.clientWidth,h=innerHeight;
     const cardWidth=cards[0]?.offsetWidth||160,cardHeight=cards[0]?.offsetHeight||110;
-    const textClearX=phrase.clientWidth*.5+cardWidth*.5+(mobile?12:24);
-    const textClearY=phrase.clientHeight*.5+cardHeight*.5+(mobile?26:42);
-    // The whole trajectory stays outside the sentence's bounding box.
-    const rx=Math.max(w*(mobile?.43:.38),textClearX*1.5);
-    const ry=Math.max(h*(mobile?.27:.35),textClearY*1.5);
+    const textClearX=phrase.clientWidth*.5+cardWidth*.5+(mobile?10:24);
+    const textClearY=phrase.clientHeight*.5+cardHeight*.5+(mobile?16:28);
+    // The reference's cards orbit close to the words: frontal at the top and
+    // bottom, nearly edge-on at the sides. Dim a card only at a text crossing.
+    const rx=Math.max(w*(mobile?.43:.34),textClearX*1.2);
+    const ry=Math.max(h*(mobile?.29:.27),textClearY*1.12);
     const enter=clamp((p-.04)/.12),leave=1-clamp((p-.90)/.08);
     cards.forEach((button,i)=>{
       const angle=-Math.PI/2+i*Math.PI*2/cards.length+p*Math.PI*2*.92;
       const x=Math.cos(angle)*rx,y=Math.sin(angle)*ry;
       const front=(Math.sin(angle)+1)*.5;
-      const z=(front-.5)*(mobile?90:240);
-      const opacity=enter*leave*(.58+.42*front);
-      button.style.transform=`translate3d(${x}px,${y}px,${z}px) rotateY(${-Math.cos(angle)*16}deg)`;
+      const z=(front-.5)*(mobile?140:360);
+      const clear=Math.max(
+        clamp((Math.abs(x)-textClearX+cardWidth*.3)/(cardWidth*.3)),
+        clamp((Math.abs(y)-textClearY+cardHeight*.3)/(cardHeight*.3))
+      );
+      const opacity=enter*leave*(.62+.38*front)*clear;
+      button.style.transform=`translate3d(${x}px,${y}px,${z}px) rotateY(${-Math.cos(angle)*75}deg)`;
       button.style.opacity=String(opacity);
       button.style.zIndex=String(1+Math.round(front*7));
       button.inert=opacity<.2;
@@ -60,16 +65,21 @@
 
   }
   function poseRibbon(){
-    const index=document.querySelector('.category-experience:not(.collection-experience)'),flow=document.querySelector('#work-flow');
-    const svg=flow.querySelector('.flow-ribbon'),path=svg.firstElementChild;
-    svg.style.display=index?'block':'none';if(!index)return;
-    const f=flow.getBoundingClientRect(),r=index.getBoundingClientRect(),g=gallery.getBoundingClientRect();
-    const top=r.top-f.top-innerHeight*.3;
-    const height=r.height+innerHeight;
+    const index=document.querySelector('.category-experience:not(.collection-experience)');
+    const svg=document.querySelector('.flow-ribbon'),path=svg.firstElementChild;
+    svg.style.display=index&&innerWidth>800&&!reduce.matches?'block':'none';if(!index||innerWidth<=800||reduce.matches)return;
+    const main=document.querySelector('main'),m=main.getBoundingClientRect();
+    const about=document.querySelector('#about').getBoundingClientRect();
+    const g=gallery.getBoundingClientRect();
+    // One continuous drawing starts at the end of About, runs through Works,
+    // and finishes at the right edge of the following Gallery scene.
+    const top=about.bottom-m.top-innerHeight*.36;
+    const end=g.top-m.top+innerHeight*.82;
+    const height=Math.max(innerHeight,end-top);
     svg.style.top=top+'px';svg.style.height=height+'px';
     svg.setAttribute('viewBox','0 0 1400 1400');svg.setAttribute('preserveAspectRatio','xMidYMid slice');
-    path.setAttribute('d','M -80 0 C 300 -20 600 150 540 400 C 490 650 0 655 300 1050 C 600 1385 650 1250 850 1200 C 1050 1150 1350 1250 1540 1300');
-    const target=clamp((innerHeight*.70-r.top)/(r.height+innerHeight*.5));
+    path.setAttribute('d','M -90 0 C 300 15 600 175 540 410 C 490 650 0 665 300 1030 C 590 1370 850 1070 1150 1190 C 1290 1245 1380 1280 1500 1310');
+    const target=clamp((innerHeight*.78-(top+m.top))/(height-innerHeight*.22));
     ribbonP+=(target-ribbonP)*.085;
     path.style.strokeDashoffset=String(1-ribbonP);
     if(Math.abs(ribbonP-target)>.0002)wake();

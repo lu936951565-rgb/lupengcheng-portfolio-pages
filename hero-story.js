@@ -52,7 +52,7 @@
     const exit=clamp((value-(innerWidth<=800?.83:.79))/(innerWidth<=800?.14:.15));
     const softExit=exit*exit*(3-2*exit);
     const titleExit=clamp((value-.18)/.14);
-    const copyExit=clamp((value-.72)/.12);
+    const copyExit=clamp((value-.83)/.06);
     const copyEase=copyExit*copyExit*(3-2*copyExit);
     const outroExit=clamp((value-.92)/.05);
     section.style.setProperty('--title-rise',`${(1-rise)*23-titleExit*12}vh`);
@@ -68,8 +68,15 @@
     section.style.setProperty('--outro-rise',`${-clamp((value-.85)/.12)*14}vh`);
     const pinDeparture=Math.max(0,value*section.offsetHeight-(section.offsetHeight-innerHeight));
     section.style.setProperty('--outro-counter',`${pinDeparture*(1-clamp((value-.88)/.09))}px`);
-    const copyStage=value<.55?0:value<.68?1:2;
-    section.style.setProperty('--copy-opacity',clamp((value-.42)/.08)*(1-copyEase));
+    // The right-hand statement belongs to the second motion sequence, after
+    // the close-up has changed into the full-body composition.
+    const copyStage=value<.60?0:value<.755?1:2;
+    const copyAlpha=copyStage===0
+      ?clamp((value-.42)/.06)*(1-clamp((value-.54)/.06))
+      :copyStage===1
+        ?clamp((value-.64)/.045)*(1-clamp((value-.72)/.035))
+        :clamp((value-.755)/.035)*(1-copyEase);
+    section.style.setProperty('--copy-opacity',copyAlpha);
     copies.forEach((el,i)=>el.classList.toggle('active',i===copyStage));
     section.dataset.progress=value.toFixed(3);
     // Keep the last decoded frame until the next video has sought to its own pose.
