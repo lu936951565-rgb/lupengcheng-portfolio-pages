@@ -1,7 +1,7 @@
 (() => {
   const $=s=>document.querySelector(s),dialog=$('#project-dialog');
   const reduced=matchMedia('(prefers-reduced-motion: reduce)'),projects=window.PROJECTS;
-  let openProject=-1,returnFocus=null,currentCategory=null,currentGroup=null;
+  let openProject=-1,returnFocus=null,currentCategory=null,currentGroup=null,pageObserver=null;
   function syncMotion(){window.syncHeroMotion?.()}
   let lastWorkRipple=0;
   $('#works').addEventListener('pointermove',e=>{
@@ -39,15 +39,43 @@
   }
   function showProject(index){
     openProject=index;const p=projects[index];if(!dialog.open)returnFocus=document.activeElement;
+    pageObserver?.disconnect();pageObserver=null;
     $('#dialog-title').textContent=p.title;$('#dialog-category').textContent=p.category;$('#dialog-subtitle').textContent=p.subtitle;$('#dialog-pages').textContent=p.layout==='poster-row'?`${p.pages.length} POSTERS`:p.naturalWidth?'ORIGINAL RESOLUTION':`${p.pages.length} PAGES`;
     const original=$('#original-link');original.hidden=!p.original;if(p.original)original.href=p.original;else original.removeAttribute('href');
     const pages=$('#project-pages');pages.className=p.layout==='poster-row'?'poster-pages':p.id==='ai'?'image-grid':'';pages.style.setProperty('--count',p.pages.length);pages.style.setProperty('--page-width',p.naturalWidth?`${p.naturalWidth}px`:'100%');
-    pages.replaceChildren(...p.pages.map((page,i)=>{const img=document.createElement('img');img.src=page.src;img.alt=page.label;img.width=page.width;img.height=page.height;img.loading=i<3?'eager':'lazy';img.decoding='async';if(p.layout==='poster-row'||p.id==='ai'){const frame=document.createElement('figure');frame.className=p.id==='ai'?'image-grid-item':'poster-page';frame.append(img);return frame}return img}));
-    if(!dialog.open){dialog.showModal();document.body.classList.add('modal-open')}$('#dialog-scroll').scrollTop=0;$('#reading-progress').style.width='0';$('#close-dialog').focus();syncMotion();
+    const frames=p.pages.map((page,i)=>{
+      const frame=document.createElement('figure');frame.className='project-page'+(p.layout==='poster-row'?' poster-page':p.id==='ai'?' image-grid-item':'');
+      frame.style.aspectRatio=`${page.width} / ${page.height}`;
+      frame.setAttribute('aria-label',`${i+1} / ${p.pages.length} ${page.label}`);
+      const img=document.createElement('img');img.alt=page.label;img.width=page.width;img.height=page.height;img.decoding='async';
+      const status=document.createElement('div');status.className='page-status';status.setAttribute('role','status');status.textContent=`${String(i+1).padStart(2,'0')} / ${String(p.pages.length).padStart(2,'0')} · 正在加载`;
+      frame.append(img,status);
+      frame.load=()=>{
+        if(frame.classList.contains('is-loading')||frame.classList.contains('is-ready'))return;
+        frame.classList.add('is-loading');status.textContent=`${String(i+1).padStart(2,'0')} / ${String(p.pages.length).padStart(2,'0')} · 正在加载`;
+        const url=page.src+(frame.dataset.retry?`${page.src.includes('?')?'&':'?'}retry=${Date.now()}`:'');
+        img.onload=()=>{frame.classList.remove('is-loading');frame.classList.add('is-ready');status.textContent='';pageObserver?.unobserve(frame)};
+        img.onerror=()=>{
+          frame.classList.remove('is-loading');status.replaceChildren();
+          const retry=document.createElement('button');retry.type='button';retry.textContent='图片加载失败，点击重试 ↗';
+          retry.onclick=()=>{frame.dataset.retry='1';frame.load()};status.append(retry);
+        };
+        img.src=url;
+      };
+      return frame;
+    });
+    pages.replaceChildren(...frames);
+    if(!dialog.open){dialog.showModal();document.body.classList.add('modal-open')}
+    $('#dialog-scroll').scrollTop=0;$('#reading-progress').style.width='0';$('#close-dialog').focus();syncMotion();
+    if('IntersectionObserver' in window){
+      pageObserver=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting)entry.target.load()}),{root:$('#dialog-scroll'),rootMargin:'1400px 0px'});
+      frames.forEach(frame=>pageObserver.observe(frame));
+    }else frames.forEach(frame=>frame.load());
+    frames.slice(0,2).forEach(frame=>frame.load());
   }
   window.openPortfolioProject=id=>{const i=projects.findIndex(p=>p.id===id);if(i>=0)showProject(i)};
   $('#close-dialog').addEventListener('click',()=>dialog.close());
-  dialog.addEventListener('close',()=>{document.body.classList.remove('modal-open');syncMotion();returnFocus?.focus({preventScroll:true})});
+  dialog.addEventListener('close',()=>{pageObserver?.disconnect();pageObserver=null;document.body.classList.remove('modal-open');syncMotion();returnFocus?.focus({preventScroll:true})});
   dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close()}});
   $('#next-project').addEventListener('click',()=>{const same=projects.filter(p=>p.category===projects[openProject].category),next=same[(same.indexOf(projects[openProject])+1)%same.length];showProject(projects.indexOf(next))});
   $('#dialog-scroll').addEventListener('scroll',e=>{const x=e.target;$('#reading-progress').style.width=`${x.scrollTop/Math.max(1,x.scrollHeight-x.clientHeight)*100}%`});

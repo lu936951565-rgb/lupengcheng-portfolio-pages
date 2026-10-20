@@ -21,14 +21,15 @@
     const surface=document.createElement('span');surface.className='curved-surface';
     const fallback=new Image();fallback.src=project.cover;fallback.alt=project.title;fallback.className='curve-fallback';surface.append(fallback);
     const strips=[];
+    function ensureStrips(){if(innerWidth<=800||strips.length)return;
     for(let i=0;i<count;i++){
       const strip=document.createElement('span');strip.className='curve-strip';strip.setAttribute('aria-hidden','true');
       const image=new Image();image.src=project.cover;image.alt='';image.draggable=false;
       strip.append(image);surface.append(strip);strips.push(strip);
-    }
+    }}
     parent.append(surface);
     let width=0,height=0;
-    function resize(){width=parent.clientWidth;height=parent.clientHeight;surface.style.width=width+'px';surface.style.height=height+'px';const sw=width/count;
+    function resize(){ensureStrips();width=parent.clientWidth;height=parent.clientHeight;surface.style.width=width+'px';surface.style.height=height+'px';const sw=width/count;
       strips.forEach((strip,i)=>{strip.style.width=(sw+1)+'px';strip.style.height=height+'px';const image=strip.firstElementChild;image.style.width=width+'px';image.style.height=height+'px';image.style.left=(-i*sw)+'px'});
     }
     function bend(angle){if(!width)return;const sw=width/count;const radius=width/Math.max(.001,angle);
@@ -48,6 +49,13 @@
   function progress(section){const r=section.getBoundingClientRect();return clamp(-r.top/Math.max(1,section.offsetHeight-innerHeight))}
   function poseGallery(p){
     const mobile=innerWidth<=800,w=gallery.clientWidth;
+    if(mobile){
+      cards.forEach(({button})=>{button.style.transform='none';button.style.opacity='1';button.style.zIndex='auto';button.inert=false});
+      words.forEach((word,i)=>{const reveal=clamp((p-.08-i*.028)/.10);word.style.opacity=String(reveal);word.style.filter=`blur(${(1-reveal)*6}px)`});
+      gallery.style.setProperty('--orbit-text-opacity',1);
+      gallery.style.setProperty('--orbit-text-y','0px');
+      return;
+    }
     const rx=w*(mobile?.27:.33),rz=mobile?145:420,tilt=mobile?110:145;
     const stagger=.085,span=1+stagger*(cards.length-1);
     cards.forEach(({button,surface},i)=>{
@@ -61,6 +69,10 @@
       button.style.transform=`translate3d(${x}px,${y}px,${z}px) rotateY(${rotation}deg)`;
       button.style.opacity=opacity;button.style.zIndex=String(Math.round(z+500));button.inert=opacity<.15;
       surface.bend(mobile?.45:.5);
+      // Cards travel behind a protected title area instead of obscuring its words.
+      const cardRect=button.getBoundingClientRect(),textRect=phrase.getBoundingClientRect();
+      const overlaps=cardRect.right>textRect.left-20&&cardRect.left<textRect.right+20&&cardRect.bottom>textRect.top-20&&cardRect.top<textRect.bottom+20;
+      if(overlaps){button.style.opacity='0';button.inert=true}
     });
     gallery.style.setProperty('--orbit-progress',p);
     const exit=clamp((p-.69)/.17);

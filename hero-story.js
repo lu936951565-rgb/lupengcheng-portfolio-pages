@@ -34,7 +34,8 @@
   function poseHero(value){
     const rise=clamp(value/.14);
     const open=1-Math.pow(1-clamp((value-.18)/.34),1.5);
-    const exit=clamp((value-.88)/.10);
+    // Hold the last image until the next chapter is entering the viewport.
+    const exit=clamp((value-.95)/.05);
     section.style.setProperty('--title-rise',`${(1-rise)*25}vh`);
     section.style.setProperty('--title-gap',`${Math.max(innerWidth*.018,(visual.clientWidth*(.035+.965*open)*.5+innerWidth*.015)*clamp((value-.14)/.04))}px`);
     section.style.setProperty('--title-opacity',1-clamp((value-.32)/.20));
@@ -67,15 +68,29 @@
   }
   function poseAbout(){
     const rect=about.getBoundingClientRect(),photo=$('.about-portrait');
-    const progress=clamp(-rect.top/Math.max(1,rect.height-innerHeight));
+    if(innerWidth<=800){
+      about.dataset.progress='1';
+      photo.style.setProperty('--portrait-opacity',1);
+      photo.style.setProperty('--portrait-blur','0px');
+      about.style.setProperty('--about-rise','0px');
+      reveals.forEach(el=>{
+        el.style.setProperty('--line-opacity',1);
+        el.style.setProperty('--line-y','0px');
+        el.style.setProperty('--line-blur','0px');
+      });
+      return;
+    }
+    const progress=clamp((innerHeight*.12-rect.top)/Math.max(1,rect.height-innerHeight*.88));
     about.dataset.progress=progress.toFixed(3);
-    const photoIn=clamp((progress-.02)/.18);
+    // Reveal the new chapter as it enters, so the hero never hands off to an empty frame.
+    const entry=clamp((innerHeight*.65-rect.top)/(innerHeight*.65));
+    const photoIn=clamp((innerHeight*.60-rect.top)/(innerHeight*.45));
     const photoOut=clamp((progress-.72)/.24);
     photo.style.setProperty('--portrait-opacity',photoIn*(1-photoOut));
     photo.style.setProperty('--portrait-blur',`${(1-photoIn)*18+photoOut*12}px`);
-    about.style.setProperty('--about-rise',`${18-40*progress}svh`);
+    about.style.setProperty('--about-rise',`${6-28*progress}svh`);
     reveals.forEach((el,i)=>{
-      const enter=clamp((progress-(.02+i*.046))/.09);
+      const enter=clamp((Math.max(progress,entry*.34)-i*.046)/.09);
       const exit=clamp((progress-(.58+i*.023))/.13);
       el.style.setProperty('--line-opacity',enter*(1-exit));
       el.style.setProperty('--line-y',`${(1-enter)*28-exit*90}px`);
