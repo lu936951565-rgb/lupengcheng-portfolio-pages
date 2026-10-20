@@ -60,7 +60,8 @@
       else{const e=(t-.87)/.13;x=w*.8*e;y=tilt;z=rz*(1-e);rotation=360}
       // As the sentence arrives, shift the same travelling cards around it.
       // On narrow screens, use the space above and below the sentence.
-      const protect=clamp((p-.16)/.16)*(1-clamp((p-.84)/.12));
+      // Keep the orbit clear from the first word through the last faded word.
+      const protect=clamp((p-.10)/.10)*(1-clamp((p-.88)/.06));
       const side=i%2===0?-1:1;
       if(mobile){
         x=lerp(x,side*w*.26,protect);
