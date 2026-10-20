@@ -15,12 +15,18 @@
   let ribbonP=0;
 
 
-  // A single image stays intact while its card moves around the sentence.
-  // Repeating narrow image strips caused dark seams on hover and in perspective.
+  // A continuous cylindrical surface, with overlapping strips to avoid seams.
   function projectSurface(parent,project) {
     const surface=document.createElement('span');surface.className='curved-surface';
     const image=new Image();image.src=project.cover;image.alt=project.title;image.className='curve-fallback';image.draggable=false;
-    surface.append(image);parent.append(surface);
+    image.addEventListener('load',()=>{sizeGallery();wake()},{once:true});
+    surface.append(image);
+    for(let i=0;i<10;i++){
+      const strip=document.createElement('span');strip.className='orbit-slice';
+      strip.style.backgroundImage=`url("${project.cover}")`;
+      surface.append(strip);
+    }
+    parent.append(surface);
   }
   const orbitPlane=document.querySelector('.orbit-plane');
   const cards=featured.map((p,i)=>{
@@ -32,37 +38,64 @@
     orbitPlane.append(button);return button;
   });
   function progress(section){const r=section.getBoundingClientRect();return clamp(-r.top/Math.max(1,section.offsetHeight-innerHeight))}
+  function sizeGallery(){
+    const baseWidth=Math.min(210,Math.max(120,innerWidth*.14));
+    const radius=(innerWidth*.34+500)/2;
+    cards.forEach(card=>{
+      const image=card.querySelector('.curve-fallback');
+      const ratio=image.naturalWidth&&image.naturalHeight?image.naturalWidth/image.naturalHeight:1.5;
+      // Fit the original aspect ratio within a bounded frame; never stretch the artwork.
+      const width=Math.min(baseWidth,baseWidth*1.15*ratio),height=width/ratio;
+      card.style.setProperty('--card-width',`${width}px`);
+      card.style.setProperty('--card-height',`${height}px`);
+      const step=width/radius*180/Math.PI/10;
+      card.querySelectorAll('.orbit-slice').forEach((strip,i)=>{
+        const sliceWidth=width/10+1.5;
+        Object.assign(strip.style,{
+          width:`${sliceWidth}px`,marginLeft:`${-sliceWidth/2}px`,
+          backgroundSize:`${width}px ${height}px`,
+          backgroundPosition:`${-i*width/10}px 0`,
+          transformOrigin:`50% 50% ${-radius}px`,
+          transform:`rotateY(${(i-4.5)*step}deg)`
+        });
+      });
+    });
+  }
   function poseGallery(p){
-    const mobile=innerWidth<=800,w=gallery.clientWidth,h=innerHeight;
-    const cardWidth=cards[0]?.offsetWidth||160,cardHeight=cards[0]?.offsetHeight||110;
-    const textClearX=phrase.clientWidth*.5+cardWidth*.5+(mobile?10:24);
-    const textClearY=phrase.clientHeight*.5+cardHeight*.5+(mobile?16:28);
-    // The reference's cards orbit close to the words: frontal at the top and
-    // bottom, nearly edge-on at the sides. Dim a card only at a text crossing.
-    const rx=Math.max(w*(mobile?.43:.34),textClearX*1.2);
-    const ry=Math.max(h*(mobile?.29:.27),textClearY*1.12);
-    const enter=clamp((p-.04)/.12),leave=1-clamp((p-.90)/.08);
-    cards.forEach((button,i)=>{
-      const angle=-Math.PI/2+i*Math.PI*2/cards.length+p*Math.PI*2*.92;
-      const x=Math.cos(angle)*rx,y=Math.sin(angle)*ry;
-      const front=(Math.sin(angle)+1)*.5;
-      const z=(front-.5)*(mobile?140:360);
-      const clear=Math.max(
-        clamp((Math.abs(x)-textClearX+cardWidth*.3)/(cardWidth*.3)),
-        clamp((Math.abs(y)-textClearY+cardHeight*.3)/(cardHeight*.3))
-      );
-      const opacity=enter*leave*(.62+.38*front)*clear;
-      button.style.transform=`translate3d(${x}px,${y}px,${z}px) rotateY(${-Math.cos(angle)*75}deg)`;
-      button.style.opacity=String(opacity);
-      button.style.zIndex=String(1+Math.round(front*7));
-      button.inert=opacity<.2;
+    const w=innerWidth,rx=w*.34,depth=500,tilt=w<=768?80:180;
+    // Space all nine artworks evenly across the .76-long orbit, including its seam.
+    const stagger=.76/cards.length,range=1+stagger*(cards.length-1);
+    cards.forEach((card,i)=>{
+      const t=p*range-i*stagger;
+      if(t<=0||t>=1){card.style.opacity='0';card.inert=true;return;}
+      let x,y=tilt,z,rotation;
+      if(t<=.12){
+        const q=t/.12;x=-w*.85*(1-q);z=depth*q;rotation=0;
+      }else if(t<=.88){
+        const q=(t-.12)/.76,angle=Math.PI/2-q*Math.PI*2;
+        x=Math.cos(angle)*rx;z=Math.sin(angle)*depth;
+        y=z/depth*tilt;rotation=q*360;
+      }else{
+        const q=(t-.88)/.12;x=w*.85*q;z=depth*(1-q);rotation=360;
+      }
+      const opacity=t<.06?t/.06:t>.94?(1-t)/.06:1;
+      card.style.transform=`translate3d(${x}px,${y}px,${z}px) rotateY(${rotation}deg)`;
+      card.style.opacity=String(opacity);
+      card.style.zIndex=String(Math.round(z+600));
+      card.inert=opacity<.2;
     });
     gallery.style.setProperty('--orbit-progress',p);
-    const exit=clamp((p-.69)/.17);
-    words.forEach((word,i)=>{const reveal=clamp((p-.20-i*.018)/.065);word.style.opacity=String(reveal);word.style.filter=`blur(${(1-reveal)*9}px)`});
-    gallery.style.setProperty('--orbit-text-opacity',1-exit);
-    gallery.style.setProperty('--orbit-text-y',`${-exit*Math.min(150,innerHeight*.2)}px`);
-
+    const q=(p-.25)/.5;
+    const visible=q>=0&&q<=1;
+    const alpha=!visible?0:q<.1?q/.1:q>.75?(1-q)/.25:1;
+    phrase.style.opacity=String(alpha);
+    phrase.style.transform=`translate(-50%,calc(-50% + ${200*(.5-clamp(q))}px))`;
+    phrase.style.filter='none';
+    words.forEach((word,i)=>{
+      const reveal=q>=.4?1:clamp((q/.4*(words.length+4)-i)/3);
+      word.style.opacity=String(reveal);
+      word.style.filter=`blur(${8*(1-reveal)}px)`;
+    });
   }
   function poseRibbon(){
     const index=document.querySelector('.category-experience:not(.collection-experience)');
@@ -71,14 +104,16 @@
     const main=document.querySelector('main'),m=main.getBoundingClientRect();
     const about=document.querySelector('#about').getBoundingClientRect();
     const g=gallery.getBoundingClientRect();
-    // One continuous drawing starts at the end of About, runs through Works,
-    // and finishes at the right edge of the following Gallery scene.
+    // The ribbon continues from Works only into the first edge of Gallery.
+    // It should finish before the gallery cards and sentence take focus.
     const top=about.bottom-m.top-innerHeight*.36;
-    const end=g.top-m.top+innerHeight*.82;
+    const end=g.top-m.top+innerHeight*.04;
     const height=Math.max(innerHeight,end-top);
     svg.style.top=top+'px';svg.style.height=height+'px';
-    svg.setAttribute('viewBox','0 0 1400 1400');svg.setAttribute('preserveAspectRatio','xMidYMid slice');
-    path.setAttribute('d','M -90 0 C 300 15 600 175 540 410 C 490 650 0 665 300 1030 C 590 1370 850 1070 1150 1190 C 1290 1245 1380 1280 1500 1310');
+    const units=height*1400/Math.max(1,svg.clientWidth);
+    svg.setAttribute('viewBox',`0 0 1400 ${units}`);
+    svg.setAttribute('preserveAspectRatio','none');
+    path.setAttribute('d',`M -100 0 C 270 0 650 ${units*.12} 560 ${units*.30} C 470 ${units*.44} -100 ${units*.50} 230 ${units*.67} C 520 ${units*.82} 780 ${units*.77} 1120 ${units*.85} C 1300 ${units*.89} 1400 ${units*.94} 1530 ${units}`);
     const target=clamp((innerHeight*.78-(top+m.top))/(height-innerHeight*.22));
     ribbonP+=(target-ribbonP)*.085;
     path.style.strokeDashoffset=String(1-ribbonP);
@@ -96,7 +131,7 @@
     if(Math.abs(galleryP-targetGallery)>.0001)wake();
   }
   function wake(){if(!raf)raf=requestAnimationFrame(render)}
-  function resize(){first=true;wake()}
+  function resize(){sizeGallery();first=true;wake()}
   window.addEventListener('scroll',wake,{passive:true});window.addEventListener('resize',resize);
   reduce.addEventListener('change',()=>{cards.forEach(card=>card.inert=false);resize()});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)wake()});

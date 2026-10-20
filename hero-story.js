@@ -47,37 +47,39 @@
   window.syncHeroMotion=()=>{waterOn=null;wake()};
   function poseHero(value){
     const rise=clamp(value/.18);
-    const open=1-Math.pow(1-clamp((value-.18)/.34),1.5);
+    const open=1-Math.pow(1-clamp((value-.18)/.25),1.5);
     // The pin leaves naturally during the last viewport of this section.
-    const exit=clamp((value-(innerWidth<=800?.83:.79))/(innerWidth<=800?.14:.15));
+    const exit=clamp((value-(innerWidth<=800?.82:.79))/.18);
     const softExit=exit*exit*(3-2*exit);
     const titleExit=clamp((value-.18)/.14);
-    const copyExit=clamp((value-.83)/.06);
+    const copyExit=clamp((value-.74)/.08);
     const copyEase=copyExit*copyExit*(3-2*copyExit);
-    const outroExit=clamp((value-.92)/.05);
+    const outroExit=clamp((value-.93)/.065);
     section.style.setProperty('--title-rise',`${(1-rise)*23-titleExit*12}vh`);
     section.style.setProperty('--title-gap',`${Math.max(innerWidth*.018,(visual.clientWidth*(.035+.965*open)*.5+innerWidth*.015)*clamp((value-.14)/.04))}px`);
     section.style.setProperty('--title-opacity',1-titleExit);
     section.style.setProperty('--visual-opacity',clamp((value-.18)/.07)*(1-softExit));
+    section.style.setProperty('--visual-fade-start',`${100-exit*72}%`);
     section.style.setProperty('--visual-scale',.035+.965*open);
     section.style.setProperty('--visual-radius',`${(1-open)*24}%`);
-    section.style.setProperty('--outro-opacity',clamp((value-.84)/.05)*(1-outroExit));
+    section.style.setProperty('--outro-opacity',clamp((value-.77)/.05)*(1-outroExit));
     section.style.setProperty('--opening-opacity',1-clamp(value/.12));
     section.style.setProperty('--fog-opacity',1-clamp((value-.28)/.32));
     section.style.setProperty('--exit-rise',`${-copyEase*14}vh`);
-    section.style.setProperty('--outro-rise',`${-clamp((value-.85)/.12)*14}vh`);
+    section.style.setProperty('--outro-rise',`${-clamp((value-.86)/.13)*16}vh`);
     const pinDeparture=Math.max(0,value*section.offsetHeight-(section.offsetHeight-innerHeight));
-    section.style.setProperty('--outro-counter',`${pinDeparture*(1-clamp((value-.88)/.09))}px`);
-    // The right-hand statement belongs to the second motion sequence, after
-    // the close-up has changed into the full-body composition.
-    const copyStage=value<.60?0:value<.755?1:2;
-    const copyAlpha=copyStage===0
-      ?clamp((value-.42)/.06)*(1-clamp((value-.54)/.06))
-      :copyStage===1
-        ?clamp((value-.64)/.045)*(1-clamp((value-.72)/.035))
-        :clamp((value-.755)/.035)*(1-copyEase);
-    section.style.setProperty('--copy-opacity',copyAlpha);
-    copies.forEach((el,i)=>el.classList.toggle('active',i===copyStage));
+    section.style.setProperty('--outro-counter',`${pinDeparture*(1-clamp((value-.86)/.12))}px`);
+    // The name and the right-hand statement share the reaching close-up.
+    // Both have left before the full-body project credits begin.
+    const copyAlphas=[
+      clamp((value-.30)/.075)*(1-clamp((value-.47)/.05)),
+      clamp((value-.35)/.075)*(1-clamp((value-.47)/.05)),
+      clamp((value-.68)/.075)*(1-copyEase)
+    ];
+    copies.forEach((el,i)=>{
+      el.classList.toggle('active',copyAlphas[i]>.001);
+      el.style.setProperty('--caption-opacity',copyAlphas[i]);
+    });
     section.dataset.progress=value.toFixed(3);
     // Keep the last decoded frame until the next video has sought to its own pose.
     let stage=value<.18?0:value<.52?1:2;
@@ -104,8 +106,8 @@
     const rect=about.getBoundingClientRect(),photo=$('.about-portrait');
     if(innerWidth<=800){
       about.dataset.progress='1';
-      about.style.setProperty('--about-copy-opacity',clamp((p-.97)/.03));
-      about.style.setProperty('--about-photo-opacity',clamp((p-.86)/.11));
+      about.style.setProperty('--about-copy-opacity',clamp((p-.92)/.07));
+      about.style.setProperty('--about-photo-opacity',clamp((p-.83)/.13));
       photo.style.setProperty('--portrait-opacity',1);
       photo.style.setProperty('--portrait-blur','0px');
       about.style.setProperty('--about-rise','0px');
@@ -119,8 +121,8 @@
     const progress=clamp((innerHeight*.12-rect.top)/Math.max(1,rect.height-innerHeight*.88));
     about.dataset.progress=progress.toFixed(3);
     // The biography begins only after the hero's captions and outro have left.
-    const handoff=clamp((p-.97)/.03);
-    const photoHandoff=clamp((p-.86)/.11);
+    const handoff=clamp((p-.91)/.08);
+    const photoHandoff=clamp((p-.82)/.14);
     const entry=clamp((innerHeight*1.08-rect.top)/(innerHeight*.80))*handoff;
     const photoIn=clamp((innerHeight*1.04-rect.top)/(innerHeight*.76))*photoHandoff;
     const photoOut=clamp((progress-.72)/.24);
@@ -149,7 +151,17 @@
     if(Math.abs(p-target)>.0001)wake();
   }
   function wake(){if(!frame)frame=requestAnimationFrame(render)}
-  window.addEventListener('scroll',wake,{passive:true});window.addEventListener('resize',()=>{first=true;wake()});
+  const introRoot=document.documentElement;
+  function finishIntro(){introRoot.classList.remove('intro-pending','intro-reveal')}
+  if(introRoot.classList.contains('intro-pending')){
+    if(scrollY>12||reduce.matches)finishIntro();
+    else setTimeout(()=>{
+      if(scrollY>12){finishIntro();return}
+      introRoot.classList.add('intro-reveal');
+      setTimeout(finishIntro,1050);
+    },650);
+  }
+  window.addEventListener('scroll',()=>{if(scrollY>12&&introRoot.classList.contains('intro-pending'))finishIntro();wake()},{passive:true});window.addEventListener('resize',()=>{first=true;wake()});
   reduce.addEventListener('change',()=>{first=true;wake()});
   coarse.addEventListener('change',()=>{first=true;wake()});
   new ResizeObserver(wake).observe(document.querySelector('main'));

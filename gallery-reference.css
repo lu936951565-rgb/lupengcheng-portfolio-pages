@@ -1,0 +1,20 @@
+/* Gallery motion geometry follows the inspected reference; scoped to this section. */
+#orbit-gallery{height:600vh}
+#orbit-gallery .orbit-pin{height:100vh;perspective:1200px;overflow:hidden}
+#orbit-gallery .orbit-plane{display:contents}
+#orbit-gallery .orbit-card{left:50%;top:50%;width:var(--card-width,210px);height:var(--card-height,140px);margin-left:calc(var(--card-width,210px)*-.5);margin-top:calc(var(--card-height,140px)*-.5);padding:0;border:0;background:transparent;transform-style:preserve-3d;transition:none;filter:none}
+#orbit-gallery .orbit-card-art,#orbit-gallery .curved-surface{display:block;width:100%;height:100%;transform-style:preserve-3d;overflow:visible}
+#orbit-gallery .curve-fallback,#orbit-gallery .curve-strip{display:none}
+#orbit-gallery .orbit-slice{display:block;position:absolute;left:50%;top:0;height:100%;background-repeat:no-repeat;backface-visibility:visible}
+#orbit-gallery .orbit-phrase{display:block;position:absolute;left:50%;right:auto;top:50%;width:min(600px,90vw);margin:0;font-size:clamp(25.6px,3.5vw,51.2px);line-height:1.3;transform:translate(-50%,-50%);z-index:900;filter:none}
+#orbit-gallery .orbit-word{display:inline-block}
+@media(prefers-reduced-motion:reduce){
+ #orbit-gallery{height:auto}
+ #orbit-gallery .orbit-pin{position:relative;height:auto;perspective:none;overflow:visible}
+ #orbit-gallery .orbit-plane{display:grid;position:static;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:34px 18px;width:100%;height:auto}
+ #orbit-gallery .orbit-card{position:relative;left:auto;top:auto;width:100%;height:auto;margin:0;transform:none!important;opacity:1!important}
+ #orbit-gallery .curve-fallback{display:block;object-fit:contain}
+ #orbit-gallery .orbit-slice{display:none}
+ #orbit-gallery .orbit-phrase{position:relative;inset:auto;width:100%;transform:none!important;opacity:1!important;margin-bottom:45px}
+ #orbit-gallery .orbit-word{opacity:1!important;filter:none!important}
+}

@@ -11,6 +11,7 @@ main{position:relative;background:#090b10}
 .about-section{margin-top:0;z-index:2;background:transparent}
 .about-pin{background:linear-gradient(180deg,rgba(9,11,16,0) 0%,rgba(9,11,16,.66) 27svh,#090b10 52svh)}
 .story-visual>#hero-motion-frame{display:none;z-index:3;opacity:0;pointer-events:none}
+.story-visual{-webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 var(--visual-fade-start,100%),transparent 100%);mask-image:linear-gradient(to bottom,#000 0%,#000 var(--visual-fade-start,100%),transparent 100%)}
 .story-title>span,.story-title>em{animation:opening-title .95s cubic-bezier(.16,1,.3,1) both}
 .story-title>em{animation-delay:.12s}
 @keyframes opening-title{from{clip-path:inset(50% 0 50% 0);filter:blur(16px);scale:.94}to{clip-path:inset(0 0 0 0);filter:blur(0);scale:1}}
@@ -29,7 +30,7 @@ main{position:relative;background:#090b10}
 .poster-thumbs .poster-art{aspect-ratio:3/4;height:auto}
 .poster-thumbs .poster-art img{object-fit:contain}
 .orbit-scroll{background:transparent!important}
-.orbit-phrase{left:26%;right:26%;top:50%;font-size:clamp(26px,min(3vw,5svh),54px);transform:translateY(calc(-50% + var(--orbit-text-y,0px)));z-index:10}
+.orbit-phrase{left:26%;right:26%;top:50%;font-size:clamp(26px,min(3vw,5svh),54px);transform:translateY(calc(-50% + var(--orbit-text-y,0px)));filter:blur(var(--orbit-text-blur,0px));z-index:10}
 .orbit-plane{top:50%;z-index:1}
 .orbit-card .curved-surface,.orbit-card .curve-fallback{display:block;width:100%;height:100%}
 .orbit-card .curve-fallback{object-fit:contain}
@@ -148,4 +149,35 @@ main{position:relative;background:#090b10}
  .orbit-word{opacity:1!important;filter:none!important}
  .orbit-plane{position:static;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:34px 18px;width:100%;height:auto}
  .orbit-card{position:relative;width:100%;height:auto;aspect-ratio:4/3;margin:0;opacity:1!important;transform:none!important}
+}
+/* Opening: centered type on a solid field, then the same type drops to its
+   resting hero position while the existing lunar background is revealed. */
+.intro-curtain{position:absolute;inset:0;z-index:1;background:#090b10;opacity:0;pointer-events:none}
+.intro-pending .intro-curtain{opacity:1}
+.intro-pending.intro-reveal .intro-curtain{opacity:0;transition:opacity .95s cubic-bezier(.22,1,.36,1)}
+.intro-pending .story-title{transition:transform .95s cubic-bezier(.22,1,.36,1)}
+.intro-pending:not(.intro-reveal) .story-title{transform:translateY(0)!important}
+.intro-pending:not(.intro-reveal) .opening-note,.intro-pending:not(.intro-reveal) .opening-bottom,.intro-pending:not(.intro-reveal) .header,.intro-pending:not(.intro-reveal) .page-progress{opacity:0!important}
+.intro-pending.intro-reveal .opening-note,.intro-pending.intro-reveal .opening-bottom,.intro-pending.intro-reveal .header,.intro-pending.intro-reveal .page-progress{transition:opacity .7s .22s;opacity:1!important}
+.story-visual .story-caption.active{opacity:var(--caption-opacity,0)}
+.story-visual .story-caption:not(.story-caption-right){text-shadow:0 2px 12px #000,0 0 20px #000}
+/* The hero and biography share a soft edge during the final scroll beat. */
+@media (min-width:801px){
+ .about-section{margin-top:-12svh;padding-top:12svh}
+ .about-pin{background:linear-gradient(180deg,rgba(9,11,16,0) 0%,rgba(9,11,16,.36) 20svh,#090b10 52svh)}
+ .about-content{top:18svh}
+ .about-details{margin-left:9%;width:min(47%,760px)}
+ .about-portrait img{object-fit:contain}
+}
+@media (max-width:800px){
+ .about-section{margin-top:-8svh}
+ .about-pin{padding-top:calc(clamp(40px,8svh,90px) + 8svh);background:linear-gradient(180deg,rgba(9,11,16,0),#090b10 25svh)}
+ .story-visual .story-caption-right{left:auto;right:5%;top:35%;bottom:auto;width:39%;max-width:39%;text-shadow:0 2px 14px #080b11}
+ .story-visual .story-caption-right h2{font-size:clamp(13px,3.8vw,21px);line-height:1.3;white-space:normal}
+ .story-visual .story-caption-right .eyebrow{font-size:clamp(7px,1.7vw,9px)}
+}
+@media (prefers-reduced-motion:reduce){
+ .intro-curtain{display:none}
+ .intro-pending .story-title{transition:none;transform:none!important}
+ .about-section{margin-top:0}
 }
